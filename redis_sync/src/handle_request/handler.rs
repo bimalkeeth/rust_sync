@@ -37,6 +37,23 @@ fn process_client_request(decoded_message: Value) -> Vec<u8> {
 
 fn handle_set(v: Vec<Value>) -> Result<Value, Value> {
     let v = v.iter().skip(1).collect::<Vec<_>>();
+    if v.is_empty() || v.len() < 2 {
+        return Err(Value::Error("expected two argument for SET command".to_string()));
+    }
+
+    match (&v[0],&v[1]) {
+        (Value::Bulk(k),Value::Bulk(v))=>{
+            let _ = RUDIS_DB.lock().unwrap().insert(k.to_string(),v.to_string());
+        }
+        _ => unimplemented!("set not implemented for {:?}",v),
+    }
+
+    Ok(Value::String("OK".to_string()))
+
+}
+
+fn handle_get(v: Vec<Value>) -> Result<Value, Value> {
+    let v = v.iter().skip(1).collect::<Vec<_>>();
 
     if v.is_empty() {
         return Err(Value::Error("expected one argument for command".to_string()));
@@ -52,20 +69,4 @@ fn handle_set(v: Vec<Value>) -> Result<Value, Value> {
     };
 
     Ok(reply)
-}
-
-fn handle_get(v: Vec<Value>) -> Result<Value, Value> {
-    let v = v.iter().skip(1).collect::<Vec<_>>();
-    if v.is_empty() || v.len() < 2 {
-        return Err(Value::Error("expected two argument for SET command".to_string()));
-    }
-
-    match (&v[0],&v[1]) {
-        (Value::Bulk(k),Value::Bulk(v))=>{
-            let _ = RUDIS_DB.lock().unwrap().insert(k.to_string(),v.to_string());
-        }
-        _ => unimplemented!("set not implemented for {:?}",v),
-    }
-
-    Ok(Value::String("OK".to_string()))
 }
